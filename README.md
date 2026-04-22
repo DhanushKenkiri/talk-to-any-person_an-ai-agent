@@ -25,6 +25,44 @@ For local smoke tests without Masumi payment/registry, set `DEV_MODE=true` in `.
 - `GET /status` returns transaction aliases and HITL prompts when awaiting input.
 - `POST /provide_input` resumes HITL jobs with corrected fields.
 
+## Smoke test (DEV_MODE=true)
+Start the server, then run:
+
+1) Start a job:
+
+```bash
+curl -s -X POST "http://localhost:8080/start_job" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identifierFromPurchaser": "demo-user-1",
+    "inputData": {
+      "name": "Ada Lovelace",
+      "company": "Example Corp",
+      "socials": "https://en.wikipedia.org/wiki/Ada_Lovelace",
+      "initial_question": "What are the strongest signals about her contributions?"
+    }
+  }'
+```
+
+2) If the response returns `jobId`, query status:
+
+```bash
+curl -s "http://localhost:8080/status?jobId=<JOB_ID>"
+```
+
+3) If status becomes `AWAITING_INPUT`, provide follow-up input:
+
+```bash
+curl -s -X POST "http://localhost:8080/provide_input" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jobId": "<JOB_ID>",
+    "inputData": {
+      "query": "DONE"
+    }
+  }'
+```
+
 ## Local dev mode
 Set `DEV_MODE=true` in `.env` to bypass payments/registry and run jobs immediately for local testing.
 
