@@ -334,10 +334,31 @@ class OpenAICompatibleConversationalResponder:
         return _fallback_answer(name, query, results)
 
 
+class NoLLMSummarizer:
+    def summarize(self, name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
+        return _fallback_report(name, company, socials, results, scraped)
+
+
+class NoLLMConversationalResponder:
+    def answer(
+        self,
+        name: str,
+        company: str,
+        socials: str,
+        query: str,
+        results: list[SearchResult],
+        scraped: list[ScrapedPage],
+        hitl_notes: str = "",
+    ) -> str:
+        return _fallback_answer(name, query, results)
+
+
 def build_summarizer():
     provider = (settings.LLM_PROVIDER or "").strip().lower()
     if provider == "bedrock":
         return BedrockSummarizer()
+    if provider in {"none", "off", "disabled"}:
+        return NoLLMSummarizer()
     if provider in {"openai_compatible", "openai-compatible", "openai"}:
         return OpenAICompatibleSummarizer()
     return OpenAICompatibleSummarizer()
@@ -347,6 +368,8 @@ def build_responder():
     provider = (settings.LLM_PROVIDER or "").strip().lower()
     if provider == "bedrock":
         return BedrockConversationalResponder()
+    if provider in {"none", "off", "disabled"}:
+        return NoLLMConversationalResponder()
     if provider in {"openai_compatible", "openai-compatible", "openai"}:
         return OpenAICompatibleConversationalResponder()
     return OpenAICompatibleConversationalResponder()
