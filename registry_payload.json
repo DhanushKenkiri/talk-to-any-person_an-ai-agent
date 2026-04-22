@@ -1,0 +1,116 @@
+﻿{
+  "network": "Preprod",
+  "name": "Talk To Any Person - Persona Report & Q&A (HITL)",
+  "description": "Evidence-backed persona report + HITL Q&A. Generates a long, citation-grounded report with explicit Sources, answers optional initial_question, then continues follow-up Q&A (clarify/correct) in the same job until DONE. Inputs: name/company/socials.",
+  "apiBaseUrl": "http://52.90.17.95:8080",
+  "Capability": {
+    "name": "talktoanyperson",
+    "version": "1.0.0"
+  },
+  "Tags": [
+    "research",
+    "osint",
+    "persona",
+    "hitl",
+    "conversation",
+    "qa",
+    "scholar",
+    "talk-to-any-person"
+  ],
+  "ExampleOutputs": [
+    {
+      "name": "Ada Lovelace - Example Answer",
+      "url": "https://example.com/research-a-person/ada-lovelace.txt",
+      "mimeType": "text/plain"
+    },
+    {
+      "name": "Grace Hopper - Example Answer",
+      "url": "https://example.com/research-a-person/grace-hopper.txt",
+      "mimeType": "text/plain"
+    }
+  ],
+  "inputSchema": {
+    "input_data": [
+      {
+        "id": "name",
+        "type": "text",
+        "name": "Full Name",
+        "data": {
+          "description": "Full name of the person to research",
+          "placeholder": "Ada Lovelace"
+        },
+        "validations": [
+          {
+            "validation": "format",
+            "value": "nonempty"
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "type": "text",
+        "name": "Company",
+        "data": {
+          "description": "Company or organization",
+          "placeholder": "Example Corp"
+        },
+        "validations": [
+          {
+            "validation": "format",
+            "value": "nonempty"
+          }
+        ]
+      },
+      {
+        "id": "socials",
+        "type": "text",
+        "name": "Social URLs",
+        "data": {
+          "description": "Comma-separated profile URLs",
+          "placeholder": "https://linkedin.com/in/example"
+        },
+        "validations": [
+          {
+            "validation": "format",
+            "value": "nonempty"
+          }
+        ]
+      },
+      {
+        "id": "initial_question",
+        "type": "text",
+        "name": "Initial Question (optional)",
+        "data": {
+          "description": "Optional: a first question to answer after the report is generated",
+          "placeholder": "What do you know about their current role and recent work?"
+        },
+        "validations": [
+          {
+            "validation": "optional",
+            "value": "true"
+          }
+        ]
+      }
+    ]
+  },
+  "AgentPricing": {
+    "pricingType": "Fixed",
+    "Pricing": [
+      {
+        "amount": "50000",
+        "unit": "16a55b2a349361ff88c03788f93e1e966e5d689605d044fef722ddde0014df10745553444d"
+      }
+    ]
+  },
+  "submitResultTime": 120,
+  "unlockTime": 3600,
+  "refundTime": 7200,
+  "Author": {
+    "name": "Dhanush Kenkiri",
+    "organization": "Dhanush Kenkiri"
+  },
+  "sellingWalletVkey": "c5f28a03ee5e226244501d76dcea9d6aaa75a6cb75381636cae8557c"
+}
+
+
+
