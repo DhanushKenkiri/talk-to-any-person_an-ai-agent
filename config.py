@@ -18,7 +18,7 @@ class Settings:
     LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai_compatible")
 
     # OpenAI-compatible API settings (LLM_PROVIDER=openai_compatible)
-    AI_API_BASE_URL: str = os.getenv("AI_API_BASE_URL", "https://api.openai.com/v1")
+    AI_API_BASE_URL: str = os.getenv("AI_API_BASE_URL", "")
     AI_API_KEY: str = os.getenv("AI_API_KEY", "")
     AI_MODEL: str = os.getenv("AI_MODEL", "")
 

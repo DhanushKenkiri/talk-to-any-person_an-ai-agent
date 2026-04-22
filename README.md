@@ -34,7 +34,7 @@ In dev mode, the agent still performs search + scraping; if no LLM is configured
 Configure the LLM via env vars in `.env`:
 
 - `LLM_PROVIDER=openai_compatible` (recommended)
-  - `AI_API_BASE_URL` (your OpenAI-compatible endpoint)
+  - `AI_API_BASE_URL` (required; your OpenAI-compatible endpoint)
   - `AI_API_KEY`
   - `AI_MODEL`
 - `LLM_PROVIDER=bedrock` (optional)
