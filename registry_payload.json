@@ -1,0 +1,86 @@
+﻿{
+  "network": "Preprod",
+  "name": "PersonaSignal Nova v17",
+  "description": "Persona signal agent with evidence-backed brief and source links.",
+  "apiBaseUrl": "http://44.223.9.29:8080",
+  "Capability": {
+    "name": "persona-signal-nova-v17",
+    "version": "17.0.0"
+  },
+  "Tags": [
+    "research",
+    "osint",
+    "persona",
+    "signal",
+    "sokosumi",
+    "nova"
+  ],
+  "ExampleOutputs": [],
+  "inputSchema": {
+    "input_data": [
+      {
+        "id": "name",
+        "type": "text",
+        "name": "Full Name",
+        "data": {
+          "description": "Full name of the person to research",
+          "placeholder": "Ada Lovelace"
+        },
+        "validations": [
+          {
+            "validation": "format",
+            "value": "nonempty"
+          }
+        ]
+      },
+      {
+        "id": "company",
+        "type": "text",
+        "name": "Company",
+        "data": {
+          "description": "Company or organization (optional)",
+          "placeholder": "Example Corp"
+        },
+        "validations": [
+          {
+            "validation": "optional",
+            "value": "true"
+          }
+        ]
+      },
+      {
+        "id": "socials",
+        "type": "text",
+        "name": "Social URLs",
+        "data": {
+          "description": "Comma-separated profile URLs (optional)",
+          "placeholder": "https://linkedin.com/in/example"
+        },
+        "validations": [
+          {
+            "validation": "optional",
+            "value": "true"
+          }
+        ]
+      }
+    ]
+  },
+  "AgentPricing": {
+    "pricingType": "Fixed",
+    "Pricing": [
+      {
+        "amount": "50000",
+        "unit": "16a55b2a349361ff88c03788f93e1e966e5d689605d044fef722ddde0014df10745553444d"
+      }
+    ]
+  },
+  "submitResultTime": 120,
+  "unlockTime": 3600,
+  "refundTime": 7200,
+  "Author": {
+    "name": "PersonaSignal",
+    "organization": "PersonaSignal"
+  },
+  "sellingWalletVkey": "c5f28a03ee5e226244501d76dcea9d6aaa75a6cb75381636cae8557c"
+}
+

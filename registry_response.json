@@ -1,0 +1,55 @@
+﻿{
+    "status":  "success",
+    "data":  {
+                 "error":  null,
+                 "id":  "cmnp2usdf002i5pru71m653qh",
+                 "name":  "PersonaSignal Nova v17",
+                 "description":  "Persona signal agent with evidence-backed brief and source links.",
+                 "apiBaseUrl":  "http://44.223.9.29:8080",
+                 "Capability":  {
+                                    "name":  "persona-signal-nova-v17",
+                                    "version":  "17.0.0"
+                                },
+                 "Author":  {
+                                "name":  "PersonaSignal",
+                                "contactEmail":  null,
+                                "contactOther":  null,
+                                "organization":  "PersonaSignal"
+                            },
+                 "Legal":  {
+                               "privacyPolicy":  null,
+                               "terms":  null,
+                               "other":  null
+                           },
+                 "state":  "RegistrationRequested",
+                 "Tags":  [
+                              "research",
+                              "osint",
+                              "persona",
+                              "signal",
+                              "sokosumi",
+                              "nova"
+                          ],
+                 "createdAt":  "2026-04-07T20:34:13.386Z",
+                 "updatedAt":  "2026-04-07T20:34:13.386Z",
+                 "lastCheckedAt":  null,
+                 "ExampleOutputs":  [
+
+                                    ],
+                 "agentIdentifier":  null,
+                 "AgentPricing":  {
+                                      "pricingType":  "Fixed",
+                                      "Pricing":  [
+                                                      {
+                                                          "amount":  "50000",
+                                                          "unit":  "16a55b2a349361ff88c03788f93e1e966e5d689605d044fef722ddde0014df10745553444d"
+                                                      }
+                                                  ]
+                                  },
+                 "SmartContractWallet":  {
+                                             "walletVkey":  "c5f28a03ee5e226244501d76dcea9d6aaa75a6cb75381636cae8557c",
+                                             "walletAddress":  "addr_test1qrzl9zsrae0zycjy2qwhdh82n4425adxed6ns93ket592lqz2jz4y9g47jqhuxt4hmkp7u9u7s2mwsczy82dntgnalfsk6gd0d"
+                                         },
+                 "CurrentTransaction":  null
+             }
+}
