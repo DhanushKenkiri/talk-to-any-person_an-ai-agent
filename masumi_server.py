@@ -343,17 +343,61 @@ async def resolve_agent_identifier(endpoint: str) -> str:
     entries = data.get("Assets", []) if isinstance(data, dict) else []
     target = normalize_endpoint(endpoint)
 
+    candidates: list[dict[str, Any]] = []
     for entry in entries:
         if not isinstance(entry, dict):
             continue
         if normalize_endpoint(entry.get("apiBaseUrl", "")) != target:
             continue
-        if entry.get("name") and entry.get("name") != settings.AGENT_NAME:
+
+        agent_id = str(entry.get("agentIdentifier") or "").strip()
+        if not agent_id:
             continue
-        agent_id = entry.get("agentIdentifier") or ""
+        candidates.append(entry)
+
+    if not candidates:
+        return settings.AGENT_IDENTIFIER or ""
+
+    # Prefer exact name matches when available.
+    name_matched = [c for c in candidates if not c.get("name") or c.get("name") == settings.AGENT_NAME]
+    if name_matched:
+        candidates = name_matched
+
+    def state_rank(state: str) -> int:
+        s = (state or "").strip()
+        if s == "RegistrationConfirmed":
+            return 3
+        if s.startswith("Registration"):
+            return 2
+        if s.startswith("Deregistration"):
+            return 0
+        return 1
+
+    def timestamp_key(entry: dict[str, Any]) -> str:
+        # Registry timestamps are ISO strings; lexicographic order matches chronological order.
+        return str(entry.get("updatedAt") or entry.get("createdAt") or "")
+
+    # If there are confirmed registrations, choose the newest confirmed one.
+    confirmed = [c for c in candidates if str(c.get("state") or "") == "RegistrationConfirmed"]
+    if confirmed:
+        confirmed.sort(key=lambda x: timestamp_key(x), reverse=True)
+        agent_id = str(confirmed[0].get("agentIdentifier") or "").strip()
         if agent_id:
             _AGENT_ID_CACHE = agent_id
             return agent_id
+
+    # Otherwise, choose the newest non-deregistering registration by state rank then timestamp.
+    candidates.sort(
+        key=lambda x: (
+            state_rank(str(x.get("state") or "")),
+            timestamp_key(x),
+        ),
+        reverse=True,
+    )
+    agent_id = str(candidates[0].get("agentIdentifier") or "").strip()
+    if agent_id:
+        _AGENT_ID_CACHE = agent_id
+        return agent_id
 
     return settings.AGENT_IDENTIFIER or ""
 
