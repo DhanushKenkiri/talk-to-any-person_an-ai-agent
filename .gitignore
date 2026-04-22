@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment files (keep the example)
+.env
+.env.*
+!.env.example
+
+# Secrets / keys
+*.pem
+*.key
+*.crt
+
+# Local deployment artifacts
+aws-deployment.json
+user_data*.sh
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
