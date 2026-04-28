@@ -27,11 +27,15 @@ class WebScraper:
         }
 
     def scrape(self, urls: list[str]) -> list[ScrapedPage]:
+        """Synchronously scrape a URL list and return normalized page objects."""
+
         if not urls:
             return []
         return asyncio.run(self._scrape_many(urls))
 
     async def _scrape_many(self, urls: list[str]) -> list[ScrapedPage]:
+        """Run concurrent fetch operations for all URLs."""
+
         timeout = httpx.Timeout(settings.REQUEST_TIMEOUT)
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True, headers=self.headers) as client:
             tasks = [self._scrape_one(client, url) for url in urls]
@@ -39,6 +43,8 @@ class WebScraper:
         return [item for item in raw if isinstance(item, ScrapedPage)]
 
     async def _scrape_one(self, client: httpx.AsyncClient, url: str) -> ScrapedPage:
+        """Fetch and sanitize one URL into a text-focused ScrapedPage."""
+
         parsed = urlparse(url)
         hostname = parsed.netloc.lower().replace("www.", "")
         suffix = PurePosixPath(parsed.path.lower()).suffix

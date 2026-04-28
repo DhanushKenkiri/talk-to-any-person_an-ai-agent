@@ -1,5 +1,5 @@
-﻿#!/usr/bin/env python3
-"""TalkToAnyPerson Masumi-compatible server."""
+#!/usr/bin/env python3
+"""FastAPI service for the Talk To Any Person Masumi-compatible agent."""
 
 from __future__ import annotations
 
@@ -42,6 +42,12 @@ _DONE_TOKENS = {"done", "finish", "stop", "exit", "quit"}
 
 
 def normalize_identifier(value: Any) -> str:
+    """Normalize purchaser identifiers to a stable lowercase token.
+
+    Masumi clients can send arbitrary identifiers. If the value already looks
+    like a short hex identifier, keep it. Otherwise, derive a deterministic hash.
+    """
+
     if value is None:
         return ""
     raw = str(value).strip().lower()
@@ -51,6 +57,8 @@ def normalize_identifier(value: Any) -> str:
 
 
 def normalize_input_data(input_data: Any) -> dict[str, str]:
+    """Normalize diverse input formats into a flat string dictionary."""
+
     if isinstance(input_data, dict):
         return {str(k): "" if v is None else str(v) for k, v in input_data.items()}
     if isinstance(input_data, list):
@@ -70,6 +78,8 @@ def normalize_input_data(input_data: Any) -> dict[str, str]:
 
 
 def coerce_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Map accepted camelCase request keys to snake_case internal keys."""
+
     if "identifier_from_purchaser" not in payload and "identifierFromPurchaser" in payload:
         payload["identifier_from_purchaser"] = payload["identifierFromPurchaser"]
     if "input_data" not in payload and "inputData" in payload:
@@ -117,6 +127,8 @@ def find_invalid_socials(value: str) -> list[str]:
 
 
 def build_hitl_schema(missing: list[str], invalid_socials: list[str]) -> dict[str, Any]:
+    """Build a HITL schema that asks only for fields that require correction."""
+
     fields: list[dict[str, Any]] = []
     if "name" in missing:
         fields.append(
@@ -160,6 +172,8 @@ def build_hitl_schema(missing: list[str], invalid_socials: list[str]) -> dict[st
 
 
 def build_followup_hitl_schema() -> dict[str, Any]:
+    """Schema for iterative follow-up questions after the initial report."""
+
     return {
         "input_data": [
             {
@@ -189,6 +203,12 @@ def extract_cited_source_numbers(text: str) -> list[int]:
 
 
 def attach_sources_section(answer_text: str, results: list[Any], fallback_limit: int = 10) -> str:
+    """Append a normalized sources list to an answer.
+
+    If the answer does not include explicit [S#] citations, fall back to the
+    top ranked sources so each response remains auditable.
+    """
+
     cited = extract_cited_source_numbers(answer_text)
     if not cited:
         cited = list(range(1, min(len(results), fallback_limit) + 1))
@@ -242,6 +262,8 @@ def apply_hitl_corrections(input_data: dict[str, str]) -> dict[str, str]:
 
 
 def prepare_inputs(input_data: dict[str, str]) -> dict[str, Any]:
+    """Normalize user inputs and parse optional tuning fields."""
+
     data = dict(input_data)
     data = apply_hitl_corrections(data)
     data["name"] = data.get("name", "").strip()
@@ -319,6 +341,11 @@ def add_tx_aliases(payload: dict[str, Any], payment_id: Any) -> None:
 
 
 async def resolve_agent_identifier(endpoint: str) -> str:
+    """Resolve agent identifier from environment or registry lookup.
+
+    A short-lived cache reduces repeated registry calls under high request volume.
+    """
+
     global _AGENT_ID_CACHE, _AGENT_ID_LAST_CHECK
 
     if settings.AGENT_IDENTIFIER:
@@ -414,9 +441,12 @@ async def resolve_agent_identifier(endpoint: str) -> str:
 
 
 async def process_job(input_data: dict[str, str]) -> str:
+    """Execute the single-turn report path used in DEV mode."""
+
     prepared = prepare_inputs(input_data)
 
     service = ResearchAPersonService()
+    # Run blocking search/scrape work in a thread to avoid blocking the event loop.
     ranked, scraped = await asyncio.to_thread(
         service.gather_evidence,
         prepared["name"],
@@ -455,6 +485,8 @@ async def process_job(input_data: dict[str, str]) -> str:
 
 
 async def process_job_conversation(job_id: str, input_data: dict[str, str]) -> str:
+    """Execute the production multi-turn report + HITL conversation workflow."""
+
     prepared = prepare_inputs(input_data)
 
     # Only validate the 3 form fields up-front; queries come via HITL.
@@ -668,6 +700,7 @@ async def start_job(request: Request):
     )
 
     async def run_job_after_payment(payment_info: dict[str, Any]):
+        # Payment confirmation starts the background job lifecycle.
         payment_id = payment_info.get("blockchainIdentifier", "")
         await job_manager.update_job_status(job_id, JobStatus.RUNNING.value, payment_id=payment_id)
         try:

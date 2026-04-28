@@ -68,9 +68,12 @@ class ResearchAPersonService:
         extra_queries: list[str] | None = None,
         deep_research: bool = False,
     ) -> tuple[list[SearchResult], list[ScrapedPage]]:
+        """Collect and rank evidence for a single person profile."""
+
         queries, news_queries = self._build_queries(name, company, socials, extra_queries or [], deep_research)
         web_limit = min(settings.SEARCH_RESULTS + (6 if deep_research else 0), 30)
         news_limit = min(settings.NEWS_RESULTS + (4 if deep_research else 0), 18)
+        # Merge web and news coverage, then refine quality before scraping.
         results = self.search.search_web(queries, max_results=web_limit) + self.search.search_news(news_queries, max_results=news_limit)
         results = self._dedupe(results)
         results = self._drop_blocklisted_domains(results)
@@ -115,6 +118,8 @@ class ResearchAPersonService:
         extra_queries: list[str],
         deep_research: bool,
     ) -> tuple[list[str], list[str]]:
+        """Construct baseline and optional deep-research query sets."""
+
         base = f'"{name}"'
         queries = [
             base,

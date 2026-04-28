@@ -33,6 +33,8 @@ class SearchClient:
         return self._search(queries, limit, "news")
 
     def _search(self, queries: Iterable[str], max_results: int, mode: str) -> list[SearchResult]:
+        """Execute DuckDuckGo queries with retry and deduplication safeguards."""
+
         results: list[SearchResult] = []
         for query in queries:
             for attempt in range(3):
@@ -60,5 +62,6 @@ class SearchClient:
                     if attempt == 2:
                         logger.warning("Search failed for query '%s': %s", query, exc)
                     else:
+                        # Linear backoff helps absorb transient upstream errors.
                         time.sleep(1 + attempt)
         return results

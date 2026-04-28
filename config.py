@@ -12,6 +12,8 @@ load_dotenv(ENV_PATH)
 
 @dataclass(frozen=True)
 class Settings:
+    """Typed configuration values sourced from environment variables."""
+
     # --- LLM provider selection ---
     # Supported values:
     # - openai_compatible: OpenAI-compatible HTTP API (recommended for portability)

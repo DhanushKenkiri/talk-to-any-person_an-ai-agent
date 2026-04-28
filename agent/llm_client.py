@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def _context_text(company: str, socials: str) -> str:
+    """Build a compact context string consumed by prompt templates."""
+
     parts: list[str] = []
     if company:
         parts.append(f"Company: {company}")
@@ -23,6 +25,8 @@ def _context_text(company: str, socials: str) -> str:
 
 
 def build_bedrock_client():
+    """Create a Bedrock runtime client or return None when unavailable."""
+
     try:
         import boto3  # type: ignore
     except Exception:
@@ -47,6 +51,8 @@ def build_bedrock_client():
 
 
 def _fallback_report(name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
+    """Return a structured report when an LLM provider is unavailable."""
+
     lines = ["# Person Intelligence Report", "", "## Target", f"- Name: {name}"]
     if company:
         lines.append(f"- Company context: {company}")
@@ -79,6 +85,8 @@ def _fallback_report(name: str, company: str, socials: str, results: list[Search
 
 
 def _fallback_answer(name: str, query: str, results: list[SearchResult]) -> str:
+    """Return a source-first answer when conversational generation is unavailable."""
+
     lines = [
         f"Hello, I am {name}.",
         "I cannot answer this question because the LLM provider is not configured.",
@@ -91,6 +99,8 @@ def _fallback_answer(name: str, query: str, results: list[SearchResult]) -> str:
 
 
 def _openai_compatible_chat(prompt: str, *, max_tokens: int, temperature: float) -> str | None:
+    """Send a chat completion request to an OpenAI-compatible endpoint."""
+
     api_key = (settings.AI_API_KEY or "").strip()
     model = (settings.AI_MODEL or "").strip()
     base = (settings.AI_API_BASE_URL or "").strip().rstrip("/")
@@ -123,7 +133,7 @@ def _openai_compatible_chat(prompt: str, *, max_tokens: int, temperature: float)
         if isinstance(content, str) and content.strip():
             return content.strip()
 
-        # Some OpenAI-compatible providers return content as a block list.
+        # Some providers return message content as blocks rather than a plain string.
         if isinstance(content, list):
             parts: list[str] = []
             for block in content:
@@ -146,6 +156,8 @@ def _openai_compatible_chat(prompt: str, *, max_tokens: int, temperature: float)
 
 
 def build_source_lines(results: list[SearchResult], limit: int = 40) -> str:
+    """Serialize ranked search results into compact [S#] source lines."""
+
     source_lines: list[str] = []
     for idx, item in enumerate(results[:limit], start=1):
         title = (item.title or "").strip()[:140]
@@ -155,6 +167,8 @@ def build_source_lines(results: list[SearchResult], limit: int = 40) -> str:
 
 
 def build_content_blocks(scraped: list[ScrapedPage], max_chars: int = 26000) -> str:
+    """Serialize scraped page excerpts with a global character budget."""
+
     blocks: list[str] = []
     total_chars = 0
     for page in scraped:
@@ -170,6 +184,8 @@ def build_content_blocks(scraped: list[ScrapedPage], max_chars: int = 26000) -> 
 
 
 def build_report_prompt(name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
+    """Build the persona-report prompt with strict evidence guardrails."""
+
     context_text = _context_text(company, socials)
     sources = build_source_lines(results)
     content = build_content_blocks(scraped)
@@ -228,6 +244,8 @@ def build_answer_prompt(
     scraped: list[ScrapedPage],
     hitl_notes: str,
 ) -> str:
+    """Build the follow-up Q&A prompt grounded in collected evidence."""
+
     context_text = _context_text(company, socials)
     notes_text = hitl_notes.strip()
     hitl_block = f"HITL NOTES (NOT EVIDENCE): {notes_text}" if notes_text else "HITL NOTES: None"
