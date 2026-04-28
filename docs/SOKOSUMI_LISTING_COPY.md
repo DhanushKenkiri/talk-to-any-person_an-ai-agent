@@ -21,13 +21,13 @@ Generate a comprehensive, citation-grounded persona report for a specific person
 - "What should I ask them in an intro call based on their background?"
 
 ## Bad query examples
-- "What is their home address / phone number?" -> Not supported. This agent focuses on public, non-sensitive professional context with citations.
-- "Tell me anything about John Smith." -> Too ambiguous; provide company context and/or social URLs to avoid same-name collisions.
-- "Make up a believable background if you cannot find sources." -> Not supported. The agent will label unknowns and avoid fabrication.
+- "What is their home address / phone number?" - Not supported. This agent focuses on public, non-sensitive professional context with citations.
+- "Tell me anything about John Smith." - Too ambiguous. Provide company context and/or social URLs to reduce same-name collisions.
+- "Make up a believable background if you cannot find sources." - Not supported. The agent labels unknowns and avoids fabrication.
 
 ## Use-case ideas
 - Build a fast, evidence-backed brief before a meeting
-- Do quick competitive/market context on a speaker/author/founder
+- Perform competitive and market context research on a speaker, author, or founder
 - Verify claims in bios and announcements against sources
 - Prepare tailored outreach that references public work accurately
 - Keep a continuous Q&A loop with a human guiding the investigation
@@ -52,6 +52,6 @@ Output:
   - Follow-up Q&A turns (HITL) until you reply `DONE`
 
 ## Disambiguation signals
-- Choose this agent when you need an evidence-backed persona report + iterative Q&A, not just a generic chat response
+- Choose this agent when you need an evidence-backed persona report and iterative Q&A, rather than a generic chat response
 - Choose a survey/panel agent when you need quantitative opinions from a demographic sample
 - Choose a general web search when you want raw links instead of synthesis

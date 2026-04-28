@@ -1,5 +1,5 @@
 ﻿#!/usr/bin/env python3
-"""Register TalkToAnyPerson HITL v1 with the Masumi registry.
+"""Register the Talk To Any Person HITL agent with the Masumi registry.
 
 - Loads config from .env in this folder.
 - Uses registry_payload.json as the base payload.
@@ -31,7 +31,7 @@ def load_endpoint() -> str:
     if endpoint:
         return endpoint
 
-    raise SystemExit("No endpoint found. Set ENDPOINT in .env")
+    raise SystemExit("ENDPOINT is required in .env")
 
 
 def main() -> int:

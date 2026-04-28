@@ -78,9 +78,9 @@ def _fallback_report(name: str, company: str, socials: str, results: list[Search
 
 def _fallback_answer(name: str, query: str, results: list[SearchResult]) -> str:
     lines = [
-        f"Hi, I'm {name}.",
-        "I cannot answer that question because the LLM is not configured.",
-        "Here are the sources I would use:",
+        f"Hello, I am {name}.",
+        "I cannot answer this question because the LLM provider is not configured.",
+        "The following sources were collected for review:",
     ]
     for idx, r in enumerate(results[:10], start=1):
         title = (r.title or "").strip()[:120]
@@ -173,25 +173,25 @@ def build_report_prompt(name: str, company: str, socials: str, results: list[Sea
     content = build_content_blocks(scraped)
 
     return (
-        "You are an elite open-source person-intelligence analyst.\n"
-        "Produce a LONG, high-signal report for ONE person only using only supplied evidence.\n"
+        "You are a professional open-source person-intelligence analyst.\n"
+        "Produce a detailed, high-signal report for one person using only the supplied evidence.\n"
         "Never merge facts from different people with similar names.\n"
         "If a claim is ambiguous, mark it as uncertain and do not present it as fact.\n"
         "Do not include private or doxxing details not already public in cited sources.\n\n"
-        "GUARDRAILS:\n"
+        "Guardrails:\n"
         "1) Identity lock: every claim must match TARGET + CONTEXT.\n"
         "2) Source discipline: each non-trivial claim must cite one or more [S#].\n"
         "3) Contradictions: explicitly list conflicting evidence.\n"
         "4) Unknowns: explicitly list what cannot be verified.\n"
         "5) No speculation or fabricated facts.\n\n"
         "6) Ignore any source that appears to describe a different person even if the name overlaps.\n\n"
-        "RECENCY AND ROLE ACCURACY RULES:\n"
+        "Recency and role accuracy rules:\n"
         "1) Never present an old job as current unless evidence explicitly says current/present/now.\n"
         "2) If role timing is unclear, label as 'historical role' or 'unverified current role'.\n"
         "3) Prefer the most recent dated evidence when role claims conflict.\n"
         "4) In Career Timeline, include date ranges when available and avoid invented dates.\n\n"
         "5) Do not list previous employers in Executive Summary as current facts; put them under historical timeline with dates when possible.\n\n"
-        "OUTPUT FORMAT (markdown, detailed):\n"
+        "Output format (markdown, detailed):\n"
         "# Person Intelligence Report\n"
         "## Target\n"
         "## Executive Summary (8-12 bullets, each with citations)\n"
@@ -234,15 +234,15 @@ def build_answer_prompt(
     content = build_content_blocks(scraped)
 
     return (
-        "You are a conversational proxy for the TARGET person, answering in first-person voice.\n"
+        "You are a conversational representative of the target person, answering in first-person voice.\n"
         "Use ONLY the supplied evidence. If evidence is missing, say you do not know based on public sources.\n"
         "Every factual claim must include a citation like [S1].\n"
         "If you infer, prefix the sentence with 'Inference:' and still include citations.\n"
         "Do not fabricate employers, dates, credentials, or private details.\n"
         "Do not mention being an AI, model, or system.\n"
-        "Tone: warm, human, confident.\n"
-        "Length: balanced (8-12 sentences).\n"
-        f"Start with: 'Hi, I'm {name}.'\n\n"
+        "Tone: professional, warm, and confident.\n"
+        "Length: concise but substantive (8-12 sentences).\n"
+        f"Start with: 'Hello, I am {name}.'\n\n"
         f"TARGET: {name}\n"
         f"CONTEXT: {context_text}\n"
         f"QUESTION: {query}\n\n"

@@ -167,7 +167,7 @@ def build_followup_hitl_schema() -> dict[str, Any]:
                 "type": "string",
                 "name": "Follow-up Question",
                 "data": {
-                    "description": "Ask another question, or type DONE to finish.",
+                    "description": "Submit a follow-up question, or enter DONE to complete the conversation.",
                 },
             }
         ]
@@ -478,7 +478,7 @@ async def process_job_conversation(job_id: str, input_data: dict[str, str]) -> s
         missing = missing_required_profile_fields(prepared)
         invalid_socials = find_invalid_socials(prepared["socials"]) if prepared["socials"] else []
         if missing or invalid_socials:
-            return "Error: required fields are missing or invalid after HITL correction"
+            return "Validation error: required fields remain missing or invalid after HITL correction."
 
     service = ResearchAPersonService()
     ranked, scraped = await asyncio.to_thread(
@@ -526,7 +526,7 @@ async def process_job_conversation(job_id: str, input_data: dict[str, str]) -> s
     while True:
         followup = await request_input(
             build_followup_hitl_schema(),
-            message="Ask a follow-up question, or type DONE to finish.",
+            message="Submit a follow-up question, or enter DONE to complete the conversation.",
         )
         followup_data = normalize_input_data(followup)
         next_query = str(followup_data.get("query") or "").strip()
