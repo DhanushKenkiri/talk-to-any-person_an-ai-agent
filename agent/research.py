@@ -49,6 +49,13 @@ class ResearchAPersonService:
         self.summarizer = build_summarizer()
         self.responder = build_responder()
 
+    @staticmethod
+    def _domain_from_url(url: str) -> str:
+        try:
+            return urlparse(url).netloc.lower().replace("www.", "")
+        except Exception:
+            return ""
+
     def gather_evidence(
         self,
         name: str,
@@ -90,10 +97,7 @@ class ResearchAPersonService:
     def _drop_blocklisted_domains(self, items: list[SearchResult]) -> list[SearchResult]:
         out: list[SearchResult] = []
         for item in items:
-            try:
-                domain = urlparse(item.url).netloc.lower().replace("www.", "")
-            except Exception:
-                domain = ""
+            domain = self._domain_from_url(item.url)
             if any(domain.endswith(bad) for bad in BLOCKLIST_DOMAINS):
                 continue
             out.append(item)
@@ -194,18 +198,14 @@ class ResearchAPersonService:
 
     def _is_strict_identity_match(self, result: SearchResult, name_tokens: list[str], context_terms: set[str]) -> bool:
         hay = f"{result.title} {result.snippet} {result.url}".lower()
-        domain = ""
-        try:
-            domain = urlparse(result.url).netloc.lower().replace("www.", "")
-        except Exception:
-            domain = ""
+        domain = self._domain_from_url(result.url)
 
         has_name = all(token in hay for token in name_tokens[:2]) if len(name_tokens) >= 2 else bool(name_tokens and name_tokens[0] in hay)
         if not has_name:
             return False
 
         has_context = any(term in hay for term in context_terms)
-        trusted_profile_domain = any(x in domain for x in ["linkedin.com", "github.com", "masumi", "youtube.com"])
+        trusted_profile_domain = any(x in domain for x in HIGH_TRUST_HINTS)
         return has_context or trusted_profile_domain
 
     def _is_loose_identity_match(self, result: SearchResult, name_tokens: list[str]) -> bool:
@@ -219,6 +219,10 @@ class ResearchAPersonService:
             return items
 
         name_tokens = [t for t in self._tokenize(name) if len(t) > 2]
+        # Some valid names can be very short (for example "Li"); in that case,
+        # keep ranked items instead of filtering everything out.
+        if not name_tokens:
+            return items[: max(10, settings.SCRAPE_LIMIT * 2)]
         context_terms = self._context_terms(company, socials)
 
         strict = [item for item in items if self._is_strict_identity_match(item, name_tokens, context_terms)]
@@ -231,11 +235,7 @@ class ResearchAPersonService:
 
     def _score_result(self, result: SearchResult, full_name: str, terms: set[str]) -> int:
         hay = f"{result.title} {result.snippet} {result.url}".lower()
-        domain = ""
-        try:
-            domain = urlparse(result.url).netloc.lower().replace("www.", "")
-        except Exception:
-            domain = ""
+        domain = self._domain_from_url(result.url)
         score = 0
 
         if full_name.lower() in hay:
@@ -306,10 +306,7 @@ class ResearchAPersonService:
         urls: list[str] = []
         seen_domains: set[str] = set()
         for item in results:
-            try:
-                domain = urlparse(item.url).netloc.lower()
-            except Exception:
-                domain = ""
+            domain = self._domain_from_url(item.url)
             if domain and domain in seen_domains:
                 continue
             if domain:

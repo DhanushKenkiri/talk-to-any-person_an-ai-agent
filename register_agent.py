@@ -75,7 +75,18 @@ def main() -> int:
     agent_identifier = data.get("agentIdentifier") or result.get("agentIdentifier")
     state = data.get("state") or result.get("state")
 
-    print(json.dumps({"status_code": resp.status_code, "registryId": registry_id, "agentIdentifier": agent_identifier, "state": state, "apiBaseUrl": endpoint}, indent=2))
+    print(
+        json.dumps(
+            {
+                "status_code": resp.status_code,
+                "registryId": registry_id,
+                "agentIdentifier": agent_identifier,
+                "state": state,
+                "apiBaseUrl": endpoint,
+            },
+            indent=2,
+        )
+    )
 
     sokosumi_base = "https://preprod.sokosumi.com" if NETWORK.lower() == "preprod" else "https://app.sokosumi.com"
     if agent_identifier:

@@ -11,6 +11,15 @@ from agent.types import ScrapedPage, SearchResult
 logger = logging.getLogger(__name__)
 
 
+def _context_text(company: str, socials: str) -> str:
+    parts: list[str] = []
+    if company:
+        parts.append(f"Company: {company}")
+    if socials:
+        parts.append(f"Socials: {socials}")
+    return " | ".join(parts) if parts else "None"
+
+
 def build_bedrock_client():
     try:
         import boto3  # type: ignore
@@ -105,10 +114,29 @@ def _openai_compatible_chat(prompt: str, *, max_tokens: int, temperature: float)
         choices = data.get("choices") if isinstance(data, dict) else None
         if not isinstance(choices, list) or not choices:
             return None
+
         message = choices[0].get("message") if isinstance(choices[0], dict) else None
         content = message.get("content") if isinstance(message, dict) else None
+
         if isinstance(content, str) and content.strip():
-            return content
+            return content.strip()
+
+        # Some OpenAI-compatible providers return content as a block list.
+        if isinstance(content, list):
+            parts: list[str] = []
+            for block in content:
+                if isinstance(block, str):
+                    if block.strip():
+                        parts.append(block.strip())
+                    continue
+                if isinstance(block, dict):
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        parts.append(text.strip())
+            merged = "\n".join(parts).strip()
+            if merged:
+                return merged
+
         return None
     except Exception as exc:
         logger.warning("OpenAI-compatible request failed: %s", exc)
@@ -139,6 +167,91 @@ def build_content_blocks(scraped: list[ScrapedPage], max_chars: int = 26000) -> 
     return "\n\n".join(blocks)
 
 
+def build_report_prompt(name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
+    context_text = _context_text(company, socials)
+    sources = build_source_lines(results)
+    content = build_content_blocks(scraped)
+
+    return (
+        "You are an elite open-source person-intelligence analyst.\n"
+        "Produce a LONG, high-signal report for ONE person only using only supplied evidence.\n"
+        "Never merge facts from different people with similar names.\n"
+        "If a claim is ambiguous, mark it as uncertain and do not present it as fact.\n"
+        "Do not include private or doxxing details not already public in cited sources.\n\n"
+        "GUARDRAILS:\n"
+        "1) Identity lock: every claim must match TARGET + CONTEXT.\n"
+        "2) Source discipline: each non-trivial claim must cite one or more [S#].\n"
+        "3) Contradictions: explicitly list conflicting evidence.\n"
+        "4) Unknowns: explicitly list what cannot be verified.\n"
+        "5) No speculation or fabricated facts.\n\n"
+        "6) Ignore any source that appears to describe a different person even if the name overlaps.\n\n"
+        "RECENCY AND ROLE ACCURACY RULES:\n"
+        "1) Never present an old job as current unless evidence explicitly says current/present/now.\n"
+        "2) If role timing is unclear, label as 'historical role' or 'unverified current role'.\n"
+        "3) Prefer the most recent dated evidence when role claims conflict.\n"
+        "4) In Career Timeline, include date ranges when available and avoid invented dates.\n\n"
+        "5) Do not list previous employers in Executive Summary as current facts; put them under historical timeline with dates when possible.\n\n"
+        "OUTPUT FORMAT (markdown, detailed):\n"
+        "# Person Intelligence Report\n"
+        "## Target\n"
+        "## Executive Summary (8-12 bullets, each with citations)\n"
+        "## Identity Confidence and Disambiguation\n"
+        "- Explain why evidence belongs to this one person only.\n"
+        "- Mention possible same-name collisions and why accepted/rejected.\n"
+        "## Structured Profile\n"
+        "### Current Role and Organization (state confidence and evidence recency)\n"
+        "### Career Timeline (chronological bullets with dates if available)\n"
+        "### Education and Credentials\n"
+        "### Projects, Publications, Talks, Open Source, Media\n"
+        "### Skills and Domain Signals\n"
+        "### Online Presence Map (platform by platform)\n"
+        "### Notable Claims and Supporting Evidence\n"
+        "## Contradictions, Ambiguities, and Gaps\n"
+        "## Research Leads (what to check next)\n"
+        "## Source Index (S1..Sn with URL and short relevance note)\n"
+        "Aim for a thorough report; prefer depth over brevity.\n\n"
+        f"TARGET: {name}\n"
+        f"CONTEXT: {context_text}\n\n"
+        f"SOURCES:\n{sources}\n\n"
+        f"CONTENT:\n{content}"
+    )
+
+
+def build_answer_prompt(
+    name: str,
+    company: str,
+    socials: str,
+    query: str,
+    results: list[SearchResult],
+    scraped: list[ScrapedPage],
+    hitl_notes: str,
+) -> str:
+    context_text = _context_text(company, socials)
+    notes_text = hitl_notes.strip()
+    hitl_block = f"HITL NOTES (NOT EVIDENCE): {notes_text}" if notes_text else "HITL NOTES: None"
+
+    sources = build_source_lines(results)
+    content = build_content_blocks(scraped)
+
+    return (
+        "You are a conversational proxy for the TARGET person, answering in first-person voice.\n"
+        "Use ONLY the supplied evidence. If evidence is missing, say you do not know based on public sources.\n"
+        "Every factual claim must include a citation like [S1].\n"
+        "If you infer, prefix the sentence with 'Inference:' and still include citations.\n"
+        "Do not fabricate employers, dates, credentials, or private details.\n"
+        "Do not mention being an AI, model, or system.\n"
+        "Tone: warm, human, confident.\n"
+        "Length: balanced (8-12 sentences).\n"
+        f"Start with: 'Hi, I'm {name}.'\n\n"
+        f"TARGET: {name}\n"
+        f"CONTEXT: {context_text}\n"
+        f"QUESTION: {query}\n\n"
+        f"{hitl_block}\n\n"
+        f"SOURCES:\n{sources}\n\n"
+        f"CONTENT:\n{content}"
+    )
+
+
 class BedrockSummarizer:
     def __init__(self) -> None:
         self.model = settings.BEDROCK_MODEL
@@ -148,7 +261,7 @@ class BedrockSummarizer:
         if not self.client:
             return _fallback_report(name, company, socials, results, scraped)
 
-        prompt = self._prompt(name, company, socials, results, scraped)
+        prompt = build_report_prompt(name, company, socials, results, scraped)
         try:
             response = self.client.invoke_model(
                 modelId=self.model,
@@ -167,67 +280,9 @@ class BedrockSummarizer:
             logger.warning("Bedrock failed: %s", exc)
             return _fallback_report(name, company, socials, results, scraped)
 
-    def _prompt(self, name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
-        context = []
-        if company:
-            context.append(f"Company: {company}")
-        if socials:
-            context.append(f"Socials: {socials}")
-        context_text = " | ".join(context) if context else "None"
-
-        sources = build_source_lines(results)
-        content = build_content_blocks(scraped)
-
-        return (
-            "You are an elite open-source person-intelligence analyst.\n"
-            "Produce a LONG, high-signal report for ONE person only using only supplied evidence.\n"
-            "Never merge facts from different people with similar names.\n"
-            "If a claim is ambiguous, mark it as uncertain and do not present it as fact.\n"
-            "Do not include private or doxxing details not already public in cited sources.\n\n"
-            "GUARDRAILS:\n"
-            "1) Identity lock: every claim must match TARGET + CONTEXT.\n"
-            "2) Source discipline: each non-trivial claim must cite one or more [S#].\n"
-            "3) Contradictions: explicitly list conflicting evidence.\n"
-            "4) Unknowns: explicitly list what cannot be verified.\n"
-            "5) No speculation or fabricated facts.\n\n"
-            "6) Ignore any source that appears to describe a different person even if the name overlaps.\n\n"
-            "RECENCY AND ROLE ACCURACY RULES:\n"
-            "1) Never present an old job as current unless evidence explicitly says current/present/now.\n"
-            "2) If role timing is unclear, label as 'historical role' or 'unverified current role'.\n"
-            "3) Prefer the most recent dated evidence when role claims conflict.\n"
-            "4) In Career Timeline, include date ranges when available and avoid invented dates.\n\n"
-            "5) Do not list previous employers in Executive Summary as current facts; put them under historical timeline with dates when possible.\n\n"
-            "OUTPUT FORMAT (markdown, detailed):\n"
-            "# Person Intelligence Report\n"
-            "## Target\n"
-            "## Executive Summary (8-12 bullets, each with citations)\n"
-            "## Identity Confidence and Disambiguation\n"
-            "- Explain why evidence belongs to this one person only.\n"
-            "- Mention possible same-name collisions and why accepted/rejected.\n"
-            "## Structured Profile\n"
-            "### Current Role and Organization (state confidence and evidence recency)\n"
-            "### Career Timeline (chronological bullets with dates if available)\n"
-            "### Education and Credentials\n"
-            "### Projects, Publications, Talks, Open Source, Media\n"
-            "### Skills and Domain Signals\n"
-            "### Online Presence Map (platform by platform)\n"
-            "### Notable Claims and Supporting Evidence\n"
-            "## Contradictions, Ambiguities, and Gaps\n"
-            "## Research Leads (what to check next)\n"
-            "## Source Index (S1..Sn with URL and short relevance note)\n"
-            "Aim for a thorough report; prefer depth over brevity.\n\n"
-            f"TARGET: {name}\n"
-            f"CONTEXT: {context_text}\n\n"
-            f"SOURCES:\n{sources}\n\n"
-            f"CONTENT:\n{content}"
-        )
-
-    # Bedrock summarizer fallback is handled by _fallback_report.
-
-
 class OpenAICompatibleSummarizer:
     def summarize(self, name: str, company: str, socials: str, results: list[SearchResult], scraped: list[ScrapedPage]) -> str:
-        prompt = BedrockSummarizer()._prompt(name, company, socials, results, scraped)
+        prompt = build_report_prompt(name, company, socials, results, scraped)
         text = _openai_compatible_chat(prompt, max_tokens=3200, temperature=0.1)
         if text:
             return text
@@ -252,7 +307,7 @@ class BedrockConversationalResponder:
         if not self.client:
             return _fallback_answer(name, query, results)
 
-        prompt = self._prompt(name, company, socials, query, results, scraped, hitl_notes)
+        prompt = build_answer_prompt(name, company, socials, query, results, scraped, hitl_notes)
         max_tokens = 1400
         try:
             response = self.client.invoke_model(
@@ -272,50 +327,6 @@ class BedrockConversationalResponder:
             logger.warning("Bedrock responder failed: %s", exc)
             return _fallback_answer(name, query, results)
 
-    def _prompt(
-        self,
-        name: str,
-        company: str,
-        socials: str,
-        query: str,
-        results: list[SearchResult],
-        scraped: list[ScrapedPage],
-        hitl_notes: str,
-    ) -> str:
-        context = []
-        if company:
-            context.append(f"Company: {company}")
-        if socials:
-            context.append(f"Socials: {socials}")
-        context_text = " | ".join(context) if context else "None"
-
-        notes_text = hitl_notes.strip()
-        hitl_block = f"HITL NOTES (NOT EVIDENCE): {notes_text}" if notes_text else "HITL NOTES: None"
-
-        sources = build_source_lines(results)
-        content = build_content_blocks(scraped)
-
-        return (
-            "You are a conversational proxy for the TARGET person, answering in first-person voice.\n"
-            "Use ONLY the supplied evidence. If evidence is missing, say you do not know based on public sources.\n"
-            "Every factual claim must include a citation like [S1].\n"
-            "If you infer, prefix the sentence with 'Inference:' and still include citations.\n"
-            "Do not fabricate employers, dates, credentials, or private details.\n"
-            "Do not mention being an AI, model, or system.\n"
-            "Tone: warm, human, confident.\n"
-            "Length: balanced (8-12 sentences).\n"
-            "Start with: 'Hi, I'm {name}.'\n\n"
-            f"TARGET: {name}\n"
-            f"CONTEXT: {context_text}\n"
-            f"QUESTION: {query}\n\n"
-            f"{hitl_block}\n\n"
-            f"SOURCES:\n{sources}\n\n"
-            f"CONTENT:\n{content}"
-        )
-
-    # Bedrock responder fallback is handled by _fallback_answer.
-
-
 class OpenAICompatibleConversationalResponder:
     def answer(
         self,
@@ -327,7 +338,7 @@ class OpenAICompatibleConversationalResponder:
         scraped: list[ScrapedPage],
         hitl_notes: str = "",
     ) -> str:
-        prompt = BedrockConversationalResponder()._prompt(name, company, socials, query, results, scraped, hitl_notes)
+        prompt = build_answer_prompt(name, company, socials, query, results, scraped, hitl_notes)
         text = _openai_compatible_chat(prompt, max_tokens=1400, temperature=0.2)
         if text:
             return text

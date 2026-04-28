@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import re
+from pathlib import PurePosixPath
+from urllib.parse import urlparse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -33,10 +35,13 @@ class WebScraper:
         return [item for item in raw if isinstance(item, ScrapedPage)]
 
     async def _scrape_one(self, client: httpx.AsyncClient, url: str) -> ScrapedPage:
-        low = url.lower()
-        if any(d in low for d in SKIP_DOMAINS):
+        parsed = urlparse(url)
+        hostname = parsed.netloc.lower().replace("www.", "")
+        suffix = PurePosixPath(parsed.path.lower()).suffix
+
+        if hostname and any(hostname.endswith(domain) for domain in SKIP_DOMAINS):
             return ScrapedPage(url=url, title="", text="", success=False, error="Skipped domain")
-        if any(low.endswith(ext) for ext in SKIP_EXTENSIONS):
+        if suffix in SKIP_EXTENSIONS:
             return ScrapedPage(url=url, title="", text="", success=False, error="Skipped extension")
 
         try:
@@ -47,7 +52,8 @@ class WebScraper:
         if resp.status_code != 200:
             return ScrapedPage(url=url, title="", text="", success=False, error=f"HTTP {resp.status_code}")
 
-        if "html" not in resp.headers.get("content-type", ""):
+        content_type = resp.headers.get("content-type", "").lower()
+        if "html" not in content_type:
             return ScrapedPage(url=url, title="", text="", success=False, error="Non-HTML")
 
         soup = BeautifulSoup(resp.text, "lxml")

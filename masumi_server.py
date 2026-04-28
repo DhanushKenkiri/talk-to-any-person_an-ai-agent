@@ -257,6 +257,17 @@ def prepare_inputs(input_data: dict[str, str]) -> dict[str, Any]:
     return data
 
 
+def missing_required_profile_fields(prepared: dict[str, Any]) -> list[str]:
+    missing: list[str] = []
+    if not prepared.get("name"):
+        missing.append("name")
+    if not prepared.get("company"):
+        missing.append("company")
+    if not prepared.get("socials"):
+        missing.append("socials")
+    return missing
+
+
 _TXN_ALIAS_KEYS = (
     "transactionId",
     "transaction_id",
@@ -402,7 +413,7 @@ async def resolve_agent_identifier(endpoint: str) -> str:
     return settings.AGENT_IDENTIFIER or ""
 
 
-async def process_job(identifier_from_purchaser: str, input_data: dict[str, str]) -> str:
+async def process_job(input_data: dict[str, str]) -> str:
     prepared = prepare_inputs(input_data)
 
     service = ResearchAPersonService()
@@ -443,17 +454,11 @@ async def process_job(identifier_from_purchaser: str, input_data: dict[str, str]
     return report.rstrip()
 
 
-async def process_job_conversation(job_id: str, identifier_from_purchaser: str, input_data: dict[str, str]) -> str:
+async def process_job_conversation(job_id: str, input_data: dict[str, str]) -> str:
     prepared = prepare_inputs(input_data)
 
     # Only validate the 3 form fields up-front; queries come via HITL.
-    missing: list[str] = []
-    if not prepared["name"]:
-        missing.append("name")
-    if not prepared["company"]:
-        missing.append("company")
-    if not prepared["socials"]:
-        missing.append("socials")
+    missing = missing_required_profile_fields(prepared)
 
     invalid_socials = find_invalid_socials(prepared["socials"]) if prepared["socials"] else []
     if missing or invalid_socials:
@@ -470,13 +475,7 @@ async def process_job_conversation(job_id: str, identifier_from_purchaser: str, 
                     prepared[key] = str(value).strip()
 
         prepared["socials"] = normalize_socials(prepared.get("socials", ""))
-        missing = []
-        if not prepared["name"]:
-            missing.append("name")
-        if not prepared["company"]:
-            missing.append("company")
-        if not prepared["socials"]:
-            missing.append("socials")
+        missing = missing_required_profile_fields(prepared)
         invalid_socials = find_invalid_socials(prepared["socials"]) if prepared["socials"] else []
         if missing or invalid_socials:
             return "Error: required fields are missing or invalid after HITL correction"
@@ -529,7 +528,10 @@ async def process_job_conversation(job_id: str, identifier_from_purchaser: str, 
             build_followup_hitl_schema(),
             message="Ask a follow-up question, or type DONE to finish.",
         )
-        next_query = str(followup.get("query") or "").strip()
+        followup_data = normalize_input_data(followup)
+        next_query = str(followup_data.get("query") or "").strip()
+        if not next_query:
+            continue
         if is_done_query(next_query):
             return transcript
 
@@ -604,7 +606,7 @@ async def start_job(request: Request):
 
     if settings.DEV_MODE:
         job_id = f"local-{int(time.time())}"
-        result = await process_job(identifier, normalize_input_data(input_data))
+        result = await process_job(normalize_input_data(input_data))
         response_payload = {
             "id": job_id,
             "jobId": job_id,
@@ -646,16 +648,20 @@ async def start_job(request: Request):
 
     payment.payment_ids.add(blockchain_identifier)
     seller_vkey = settings.SELLER_VKEY or str(data.get("sellerVKey") or "")
+    pay_by_time = int(data["payByTime"])
+    submit_result_time = int(data["submitResultTime"])
+    unlock_time = int(data["unlockTime"])
+    external_dispute_unlock_time = int(data["externalDisputeUnlockTime"])
 
     job_id = await job_manager.create_job(
         identifier_from_purchaser=identifier,
         input_data=input_data,
         payment=payment,
         blockchain_identifier=blockchain_identifier,
-        pay_by_time=int(payment_request["data"]["payByTime"]),
-        submit_result_time=int(payment_request["data"]["submitResultTime"]),
-        unlock_time=int(payment_request["data"]["unlockTime"]),
-        external_dispute_unlock_time=int(payment_request["data"]["externalDisputeUnlockTime"]),
+        pay_by_time=pay_by_time,
+        submit_result_time=submit_result_time,
+        unlock_time=unlock_time,
+        external_dispute_unlock_time=external_dispute_unlock_time,
         agent_identifier=agent_identifier,
         seller_vkey=seller_vkey,
         input_hash=payment.input_hash,
@@ -667,7 +673,7 @@ async def start_job(request: Request):
         try:
             set_job_context(job_id, job_manager)
             try:
-                result = await process_job_conversation(job_id, identifier, normalize_input_data(input_data))
+                result = await process_job_conversation(job_id, normalize_input_data(input_data))
             finally:
                 clear_job_context()
             await job_manager.set_job_completed(job_id, result)
@@ -685,10 +691,10 @@ async def start_job(request: Request):
         "job_id": job_id,
         "blockchainIdentifier": blockchain_identifier,
         "blockchain_identifier": blockchain_identifier,
-        "payByTime": int(payment_request["data"]["payByTime"]),
-        "submitResultTime": int(payment_request["data"]["submitResultTime"]),
-        "unlockTime": int(payment_request["data"]["unlockTime"]),
-        "externalDisputeUnlockTime": int(payment_request["data"]["externalDisputeUnlockTime"]),
+        "payByTime": pay_by_time,
+        "submitResultTime": submit_result_time,
+        "unlockTime": unlock_time,
+        "externalDisputeUnlockTime": external_dispute_unlock_time,
         "agentIdentifier": agent_identifier,
         "sellerVKey": seller_vkey,
         "identifierFromPurchaser": identifier,

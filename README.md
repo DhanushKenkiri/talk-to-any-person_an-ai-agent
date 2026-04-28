@@ -9,25 +9,19 @@ Masumi-compatible FastAPI agent that builds an evidence-backed persona report an
 - Handles missing/invalid required fields through HITL correction prompts.
 
 ## Repository map
-```text
-.
-+-- masumi_server.py           # FastAPI app + Masumi workflow endpoints
-+-- register_agent.py          # One-time registry registration script
-+-- config.py                  # Environment-driven settings
-+-- input_schema.json          # Sokosumi/Masumi input schema served by /input_schema
-+-- registry_payload.json      # Base payload used during registration
-+-- agent/
-|   +-- research.py            # Evidence gathering, ranking, identity matching
-|   +-- search_client.py       # DuckDuckGo text/news search wrapper
-|   +-- web_scraper.py         # Async webpage scraper and cleaner
-|   +-- llm_client.py          # LLM adapters + prompting + fallbacks
-|   +-- types.py               # Shared dataclasses
-+-- docs/
-    +-- ARCHITECTURE.md
-    +-- API_REFERENCE.md
-    +-- DEPLOYMENT_AND_REGISTRY.md
-    +-- SOKOSUMI_LISTING_COPY.md
-```
+| Path | Purpose |
+| --- | --- |
+| `masumi_server.py` | FastAPI app and Masumi workflow endpoints |
+| `register_agent.py` | One-time Masumi registry registration helper |
+| `config.py` | Centralized environment configuration |
+| `input_schema.json` | Input schema returned by `/input_schema` |
+| `registry_payload.json` | Base payload used by registration script |
+| `agent/research.py` | Evidence gathering, ranking, and identity matching |
+| `agent/search_client.py` | DuckDuckGo web/news search wrapper |
+| `agent/web_scraper.py` | Async scraper and HTML text extraction |
+| `agent/llm_client.py` | Bedrock/OpenAI-compatible prompting and fallbacks |
+| `agent/types.py` | Shared dataclasses |
+| `docs/` | Architecture, API, deployment, and listing documentation |
 
 ## Quick start (local)
 1. Create and activate a virtual environment.
