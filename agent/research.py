@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Research orchestration for evidence collection and ranking."""
+
 import re
 from urllib.parse import urlparse
 
@@ -43,6 +45,8 @@ HIGH_TRUST_HINTS = {
 
 
 class ResearchAPersonService:
+    """Coordinates search, scraping, ranking, and response generation components."""
+
     def __init__(self) -> None:
         self.search = SearchClient()
         self.scraper = WebScraper()

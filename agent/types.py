@@ -1,3 +1,5 @@
+"""Shared data models used across search, scraping, and generation stages."""
+
 from dataclasses import dataclass
 
 

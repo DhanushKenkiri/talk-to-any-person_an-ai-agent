@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Asynchronous web scraping utilities for collecting page evidence."""
+
 import asyncio
 import re
 from pathlib import PurePosixPath
@@ -16,6 +18,8 @@ SKIP_EXTENSIONS = {".pdf", ".jpg", ".png", ".gif", ".mp4", ".zip", ".doc", ".doc
 
 
 class WebScraper:
+    """Fetches, cleans, and normalizes text content from web pages."""
+
     def __init__(self) -> None:
         self.headers = {
             "User-Agent": settings.USER_AGENT,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""LLM provider adapters, prompts, and fallback response builders."""
+
 import json
 import logging
 

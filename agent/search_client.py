@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Search client wrapper for DuckDuckGo web and news retrieval."""
+
 import logging
 import time
 from typing import Iterable
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class SearchClient:
-    """Thin DuckDuckGo wrapper with retry and URL deduplication."""
+    """DuckDuckGo search wrapper with retry handling and URL deduplication."""
 
     def __init__(self) -> None:
         self._seen: set[str] = set()
